@@ -121,90 +121,90 @@ print(&quot;Welcome to brlang!&quot;)"></textarea>
     </div>
 
     <script>
-        // ここにJavaScriptのコードを書いていきます
-        // brlang インタープリター v0.1
-        class BrlangInterpreter {
-            constructor() {
-                this.outputElement = document.getElementById('output');
-            }
+    // ここにJavaScriptのコードを書いていきます
+    // brlang インタープリター v0.1
+    class BrlangInterpreter {
+        constructor() {
+            this.outputElement = document.getElementById('output');
+        }
+        
+        // 結果を画面に表示する関数
+        print(message) {
+            this.outputElement.textContent += message + '\n';
+        }
+        
+        // 出力エリアをクリアする関数
+        clearOutput() {
+            this.outputElement.textContent = '';
+        }
+        
+        // brlangコードを実行する関数（今回は超シンプル版）
+        execute(code) {
+            this.clearOutput();
             
-            // 結果を画面に表示する関数
-            print(message) {
-                this.outputElement.textContent += message + '\n';
-            }
-            
-            // 出力エリアをクリアする関数
-            clearOutput() {
-                this.outputElement.textContent = '';
-            }
-            
-            // brlangコードを実行する関数（今回は超シンプル版）
-            execute(code) {
-                this.clearOutput();
+            try {
+                // 現在は print() 関数のみ対応
+                const lines = code.split('\n');
                 
-                try {
-                    // 現在は print() 関数のみ対応
-                    const lines = code.split('\n');
+                for (let line of lines) {
+                    line = line.trim();
                     
-                    for (let line of lines) {
-                        line = line.trim();
-                        
-                        // 空行をスキップ
-                        if (line === '') continue;
-                        
-                        // print文を処理
-                        if (line.startsWith('print(') && line.endsWith(')')) {
-                            this.processPrint(line);
-                        } else if (line !== '') {
-                            this.print(`エラー: 未対応の構文 "${line}"`);
-                        }
+                    // 空行をスキップ
+                    if (line === '') continue;
+                    
+                    // print文を処理
+                    if (line.startsWith('print(') && line.endsWith(')')) {
+                        this.processPrint(line);
+                    } else if (line !== '') {
+                        this.print(`エラー: 未対応の構文 "${line}"`);
                     }
-                } catch (error) {
-                    this.print(`実行エラー: ${error.message}`);
                 }
-            }
-            
-            // print文を処理する関数
-            processPrint(line) {
-                // print("Hello, World!") から "Hello, World!" の部分を取り出す
-                const match = line.match(/^print\("(.*)"\)$/);
-                
-                if (match) {
-                    const message = match[1];
-                    this.print(message);
-                } else {
-                    this.print('エラー: print文の書式が正しくありません');
-                }
+            } catch (error) {
+                this.print(`実行エラー: ${error.message}`);
             }
         }
         
-        // インタープリターのインスタンスを作成
-        const interpreter = new BrlangInterpreter();
-        
-        // ページが読み込まれたときの処理
-        document.addEventListener('DOMContentLoaded', function() {
-            const runButton = document.getElementById('runButton');
-            const codeInput = document.getElementById('codeInput');
+        // print文を処理する関数
+        processPrint(line) {
+            // print("Hello, World!") から "Hello, World!" の部分を取り出す
+            const match = line.match(/^print\("(.*)"\)$/);
             
-            // 実行ボタンがクリックされたときの処理
-            runButton.addEventListener('click', function() {
+            if (match) {
+                const message = match[1];
+                this.print(message);
+            } else {
+                this.print('エラー: print文の書式が正しくありません');
+            }
+        }
+    }
+    
+    // インタープリターのインスタンスを作成
+    const interpreter = new BrlangInterpreter();
+    
+    // ページが読み込まれたときの処理
+    document.addEventListener('DOMContentLoaded', function() {
+        const runButton = document.getElementById('runButton');
+        const codeInput = document.getElementById('codeInput');
+        
+        // 実行ボタンがクリックされたときの処理
+        runButton.addEventListener('click', function() {
+            const code = codeInput.value;
+            interpreter.execute(code);
+        });
+        
+        // Ctrl+Enter で実行できるようにする
+        codeInput.addEventListener('keydown', function(event) {
+            if (event.ctrlKey && event.key === 'Enter') {
                 const code = codeInput.value;
                 interpreter.execute(code);
-            });
-            
-            // Ctrl+Enter で実行できるようにする
-            codeInput.addEventListener('keydown', function(event) {
-                if (event.ctrlKey && event.key === 'Enter') {
-                    const code = codeInput.value;
-                    interpreter.execute(code);
-                }
-            });
-            
-            // 初期表示メッセージ
-            interpreter.print('brlang 実行環境へようこそ！');
-            interpreter.print('上のテキストエリアにコードを入力して実行ボタンを押してください。');
-            interpreter.print('');
+            }
         });
+        
+        // 初期表示メッセージ
+        interpreter.print('brlang 実行環境へようこそ！');
+        interpreter.print('上のテキストエリアにコードを入力して実行ボタンを押してください。');
+        interpreter.print('');
+    });
     </script>
 </body>
 </html>
