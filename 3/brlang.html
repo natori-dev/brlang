@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>brlang - ブラウザで動くプログラミング言語</title>
+    <style>
+        body {
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .editor-section {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #34495e;
+        }
+        #codeInput {
+            width: 100%;
+            height: 200px;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 14px;
+            padding: 15px;
+            border: 2px solid #bdc3c7;
+            border-radius: 5px;
+            background-color: #fafafa;
+            resize: vertical;
+        }
+        #codeInput:focus {
+            outline: none;
+            border-color: #3498db;
+        }
+        .buttons {
+            text-align: center;
+            margin: 20px 0;
+        }
+        #runButton {
+            background-color: #27ae60;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            font-size: 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        #runButton:hover {
+            background-color: #219a52;
+        }
+        #runButton:active {
+            transform: translateY(1px);
+        }
+        .output-section {
+            margin-top: 30px;
+        }
+        #output {
+            width: 100%;
+            height: 150px;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 14px;
+            padding: 15px;
+            border: 2px solid #bdc3c7;
+            border-radius: 5px;
+            background-color: #2c3e50;
+            color: #ecf0f1;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+        .sample-code {
+            background-color: #ecf0f1;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+            border-left: 4px solid #3498db;
+        }
+        #tokens {
+            width: 100%;
+            height: 120px;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 12px;
+            padding: 15px;
+            border: 2px solid #bdc3c7;
+            border-radius: 5px;
+            background-color: #ecf0f1;
+            color: #2c3e50;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+        
+        #tokenizeButton {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            font-size: 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-left: 10px;
+            transition: background-color 0.3s;
+        }
+        
+        #tokenizeButton:hover {
+            background-color: #2980b9;
+        }
+    </style>
+</head>
+<body>
+  <div class="container">
+      <h1>🚀 brlang 実行環境</h1>
+      
+      <div class="editor-section">
+          <label for="codeInput">brlangコードを入力:</label>
+          <textarea id="codeInput" placeholder="ここにbrlangのコードを書いてください...
+  
+  例:
+  print(&quot;Hello, World!&quot;)
+  let x = 5 + 3
+  print(x)"></textarea>
+      </div>
+      
+      <div class="buttons">
+          <button id="runButton">▶️ 実行</button>
+          <button id="tokenizeButton">🔍 トークン解析</button>
+      </div>
+      
+      <!-- トークン表示エリアを追加 -->
+      <div class="output-section">
+          <label for="tokens">トークン解析結果:</label>
+          <div id="tokens"></div>
+      </div>
+      
+      <div class="output-section">
+          <label for="output">実行結果:</label>
+          <div id="output"></div>
+      </div>
+      
+      <div class="sample-code">
+          <strong>💡 試してみよう:</strong><br>
+          <code>let x = 5 + 3</code> と入力して「トークン解析」ボタンを押してみてください。<br>
+          どんなトークンに分解されるかを確認できます。
+      </div>
+  </div>
+  <script>
+  // ここにJavaScriptのコードを書いていきます
+
+  // トークンの種類を定義
+  const TokenType = {
+      // リテラル（値）
+      NUMBER: 'NUMBER',           // 123, 45.67
+      STRING: 'STRING',           // "Hello", 'World'
+      IDENTIFIER: 'IDENTIFIER',   // 変数名、関数名
+      
+      // キーワード
+      LET: 'LET',                // let
+      PRINT: 'PRINT',            // print
+      
+      // 演算子
+      PLUS: 'PLUS',              // +
+      MINUS: 'MINUS',            // -
+      MULTIPLY: 'MULTIPLY',      // *
+      DIVIDE: 'DIVIDE',          // /
+      ASSIGN: 'ASSIGN',          // =
+      
+      // 区切り文字
+      LPAREN: 'LPAREN',          // (
+      RPAREN: 'RPAREN',          // )
+      COMMA: 'COMMA',            // ,
+      
+      // 特殊
+      NEWLINE: 'NEWLINE',        // 改行
+      EOF: 'EOF'                 // ファイル終端
+  };
+  
+  // トークンクラス
+  class Token {
+      constructor(type, value, line = 0, column = 0) {
+          this.type = type;      // トークンの種類
+          this.value = value;    // トークンの値
+          this.line = line;      // 行番号（エラー表示用）
+          this.column = column;  // 列番号（エラー表示用）
+      }
+      
+      toString() {
+          return `Token(${this.type}, "${this.value}")`;
+      }
+  }
+  
+  // レキサー（字句解析器）クラス
+  class Lexer {
+      constructor(text) {
+          this.text = text;           // 解析する文字列
+          this.position = 0;          // 現在の位置
+          this.line = 1;              // 現在の行番号
+          this.column = 1;            // 現在の列番号
+          this.currentChar = this.text[this.position] || null;
+      }
+      
+      // 現在位置を1つ進める
+      advance() {
+          if (this.currentChar === '\n') {
+              this.line++;
+              this.column = 1;
+          } else {
+              this.column++;
+          }
+          
+          this.position++;
+          this.currentChar = this.position < this.text.length ? 
+                            this.text[this.position] : null;
+      }
+      
+      // 空白文字をスキップ
+      skipWhitespace() {
+          while (this.currentChar && /\s/.test(this.currentChar) && this.currentChar !== '\n') {
+              this.advance();
+          }
+      }
+      
+      // 数値を読み取る
+      readNumber() {
+          let number = '';
+          let startColumn = this.column;
+          
+          while (this.currentChar && /[0-9.]/.test(this.currentChar)) {
+              number += this.currentChar;
+              this.advance();
+          }
+          
+          return new Token(TokenType.NUMBER, parseFloat(number), this.line, startColumn);
+      }
+      
+      // 文字列を読み取る
+      readString() {
+          let string = '';
+          let quote = this.currentChar; // " または '
+          let startColumn = this.column;
+          
+          this.advance(); // 開始クォートをスキップ
+          
+          while (this.currentChar && this.currentChar !== quote) {
+              string += this.currentChar;
+              this.advance();
+          }
+          
+          if (this.currentChar === quote) {
+              this.advance(); // 終了クォートをスキップ
+          }
+          
+          return new Token(TokenType.STRING, string, this.line, startColumn);
+      }
+      
+      // 識別子（変数名、キーワード）を読み取る
+      readIdentifier() {
+          let identifier = '';
+          let startColumn = this.column;
+          
+          while (this.currentChar && /[a-zA-Z_][a-zA-Z0-9_]*/.test(this.currentChar)) {
+              identifier += this.currentChar;
+              this.advance();
+          }
+          
+          // キーワードかどうかをチェック
+          const keywords = {
+              'let': TokenType.LET,
+              'print': TokenType.PRINT
+          };
+          
+          const tokenType = keywords[identifier] || TokenType.IDENTIFIER;
+          return new Token(tokenType, identifier, this.line, startColumn);
+      }
+      
+      // 次のトークンを取得
+      getNextToken() {
+          while (this.currentChar) {
+              // 空白をスキップ（改行以外）
+              if (/\s/.test(this.currentChar) && this.currentChar !== '\n') {
+                  this.skipWhitespace();
+                  continue;
+              }
+              
+              // 改行
+              if (this.currentChar === '\n') {
+                  const token = new Token(TokenType.NEWLINE, '\n', this.line, this.column);
+                  this.advance();
+                  return token;
+              }
+              
+              // 数値
+              if (/[0-9]/.test(this.currentChar)) {
+                  return this.readNumber();
+              }
+              
+              // 文字列
+              if (this.currentChar === '"' || this.currentChar === "'") {
+                  return this.readString();
+              }
+              
+              // 識別子・キーワード
+              if (/[a-zA-Z_]/.test(this.currentChar)) {
+                  return this.readIdentifier();
+              }
+              
+              // 単一文字トークン
+              const char = this.currentChar;
+              const line = this.line;
+              const column = this.column;
+              
+              this.advance();
+              
+              switch (char) {
+                  case '+': return new Token(TokenType.PLUS, char, line, column);
+                  case '-': return new Token(TokenType.MINUS, char, line, column);
+                  case '*': return new Token(TokenType.MULTIPLY, char, line, column);
+                  case '/': return new Token(TokenType.DIVIDE, char, line, column);
+                  case '=': return new Token(TokenType.ASSIGN, char, line, column);
+                  case '(': return new Token(TokenType.LPAREN, char, line, column);
+                  case ')': return new Token(TokenType.RPAREN, char, line, column);
+                  case ',': return new Token(TokenType.COMMA, char, line, column);
+                  default:
+                      throw new Error(`不正な文字: '${char}' (行${line}, 列${column})`);
+              }
+          }
+          
+          return new Token(TokenType.EOF, null, this.line, this.column);
+      }
+      
+      // すべてのトークンを取得
+      getAllTokens() {
+          const tokens = [];
+          let token = this.getNextToken();
+          
+          while (token.type !== TokenType.EOF) {
+              tokens.push(token);
+              token = this.getNextToken();
+          }
+          
+          tokens.push(token); // EOF トークンも追加
+          return tokens;
+      }
+  }
+  
+  // brlang インタープリター v0.2
+  class BrlangInterpreter {
+      constructor() {
+          this.outputElement = document.getElementById('output');
+          this.tokensElement = document.getElementById('tokens');
+      }
+      
+      // 結果を画面に表示する関数
+      print(message) {
+          this.outputElement.textContent += message + '\n';
+      }
+      
+      // 出力エリアをクリアする関数
+      clearOutput() {
+          this.outputElement.textContent = '';
+      }
+      
+      // トークンエリアをクリアする関数
+      clearTokens() {
+          this.tokensElement.textContent = '';
+      }
+      
+      // トークンを表示する関数
+      showTokens(tokens) {
+          this.clearTokens();
+          this.tokensElement.textContent = 'トークン解析結果:\n\n';
+          
+          tokens.forEach((token, index) => {
+              this.tokensElement.textContent += 
+                  `${index + 1}. ${token.toString()}\n`;
+          });
+      }
+      
+      // トークン解析のみを実行
+      tokenize(code) {
+          try {
+              const lexer = new Lexer(code);
+              const tokens = lexer.getAllTokens();
+              this.showTokens(tokens);
+              return tokens;
+          } catch (error) {
+              this.clearTokens();
+              this.tokensElement.textContent = `トークン解析エラー: ${error.message}`;
+              return null;
+          }
+      }
+      
+      // brlangコードを実行する関数（改良版）
+      execute(code) {
+          this.clearOutput();
+          
+          try {
+              // まずトークン化
+              const tokens = this.tokenize(code);
+              if (!tokens) return;
+              
+              // print文のみ処理（今回は簡単版）
+              this.executeSimple(tokens);
+              
+          } catch (error) {
+              this.print(`実行エラー: ${error.message}`);
+          }
+      }
+      
+      // 簡単な実行関数（print文のみ）
+      executeSimple(tokens) {
+          let i = 0;
+          
+          while (i < tokens.length && tokens[i].type !== TokenType.EOF) {
+              const token = tokens[i];
+              
+              // print文を処理
+              if (token.type === TokenType.PRINT) {
+                  i++; // print
+                  
+                  if (i < tokens.length && tokens[i].type === TokenType.LPAREN) {
+                      i++; // (
+                      
+                      // 引数を取得
+                      if (i < tokens.length) {
+                          const arg = tokens[i];
+                          
+                          if (arg.type === TokenType.STRING) {
+                              this.print(arg.value);
+                          } else if (arg.type === TokenType.NUMBER) {
+                              this.print(arg.value.toString());
+                          } else {
+                              this.print(`エラー: 未対応の引数タイプ ${arg.type}`);
+                          }
+                          
+                          i++; // 引数
+                      }
+                      
+                      if (i < tokens.length && tokens[i].type === TokenType.RPAREN) {
+                          i++; // )
+                      }
+                  } else {
+                      this.print('エラー: print文の書式が正しくありません');
+                  }
+              } else if (token.type === TokenType.NEWLINE) {
+                  i++; // 改行をスキップ
+              } else {
+                  this.print(`エラー: 未対応のトークン ${token.type}`);
+                  break;
+              }
+          }
+      }
+  }
+  
+  // インタープリターのインスタンスを作成
+  const interpreter = new BrlangInterpreter();
+  
+  // ページが読み込まれたときの処理
+  document.addEventListener('DOMContentLoaded', function() {
+      const runButton = document.getElementById('runButton');
+      const tokenizeButton = document.getElementById('tokenizeButton');
+      const codeInput = document.getElementById('codeInput');
+      
+      // 実行ボタンがクリックされたときの処理
+      runButton.addEventListener('click', function() {
+          const code = codeInput.value;
+          interpreter.execute(code);
+      });
+      
+      // トークン解析ボタンがクリックされたときの処理
+      tokenizeButton.addEventListener('click', function() {
+          const code = codeInput.value;
+          interpreter.tokenize(code);
+      });
+      
+      // Ctrl+Enter で実行、Ctrl+T でトークン解析
+      codeInput.addEventListener('keydown', function(event) {
+          if (event.ctrlKey && event.key === 'Enter') {
+              const code = codeInput.value;
+              interpreter.execute(code);
+          } else if (event.ctrlKey && event.key === 't') {
+              event.preventDefault();
+              const code = codeInput.value;
+              interpreter.tokenize(code);
+          }
+      });
+      
+      // 初期表示メッセージ
+      interpreter.print('brlang 実行環境 v0.2 へようこそ！');
+      interpreter.print('新機能: トークン解析ができるようになりました。');
+      interpreter.print('');
+  });
+
+  </script>
+</body>
+</html>
