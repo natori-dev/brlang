@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>brlang - ブラウザで動くプログラミング言語</title>
+    <style>
+        body {
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .editor-section {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #34495e;
+        }
+        #codeInput {
+            width: 100%;
+            height: 200px;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 14px;
+            padding: 15px;
+            border: 2px solid #bdc3c7;
+            border-radius: 5px;
+            background-color: #fafafa;
+            resize: vertical;
+        }
+        #codeInput:focus {
+            outline: none;
+            border-color: #3498db;
+        }
+        .buttons {
+            text-align: center;
+            margin: 20px 0;
+        }
+        #runButton {
+            background-color: #27ae60;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            font-size: 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        #runButton:hover {
+            background-color: #219a52;
+        }
+        #runButton:active {
+            transform: translateY(1px);
+        }
+        .output-section {
+            margin-top: 30px;
+        }
+        #output {
+            width: 100%;
+            height: 150px;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 14px;
+            padding: 15px;
+            border: 2px solid #bdc3c7;
+            border-radius: 5px;
+            background-color: #2c3e50;
+            color: #ecf0f1;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+        .sample-code {
+            background-color: #ecf0f1;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+            border-left: 4px solid #3498db;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 brlang 実行環境</h1>
+        
+        <div class="editor-section">
+            <label for="codeInput">brlangコードを入力:</label>
+            <textarea id="codeInput" placeholder="ここにbrlangのコードを書いてください...
+
+例:
+print(&quot;Hello, World!&quot;)
+print(&quot;Welcome to brlang!&quot;)"></textarea>
+        </div>
+        
+        <div class="buttons">
+            <button id="runButton">▶️ 実行</button>
+        </div>
+        
+        <div class="output-section">
+            <label for="output">実行結果:</label>
+            <div id="output"></div>
+        </div>
+        
+        <div class="sample-code">
+            <strong>💡 試してみよう:</strong><br>
+            上のテキストエリアに <code>print("Hello, brlang!")</code> と入力して実行ボタンを押してみてください。
+        </div>
+    </div>
+
+    <script>
+        // ここにJavaScriptのコードを書いていきます
+        // brlang インタープリター v0.1
+        class BrlangInterpreter {
+            constructor() {
+                this.outputElement = document.getElementById('output');
+            }
+            
+            // 結果を画面に表示する関数
+            print(message) {
+                this.outputElement.textContent += message + '\n';
+            }
+            
+            // 出力エリアをクリアする関数
+            clearOutput() {
+                this.outputElement.textContent = '';
+            }
+            
+            // brlangコードを実行する関数（今回は超シンプル版）
+            execute(code) {
+                this.clearOutput();
+                
+                try {
+                    // 現在は print() 関数のみ対応
+                    const lines = code.split('\n');
+                    
+                    for (let line of lines) {
+                        line = line.trim();
+                        
+                        // 空行をスキップ
+                        if (line === '') continue;
+                        
+                        // print文を処理
+                        if (line.startsWith('print(') && line.endsWith(')')) {
+                            this.processPrint(line);
+                        } else if (line !== '') {
+                            this.print(`エラー: 未対応の構文 "${line}"`);
+                        }
+                    }
+                } catch (error) {
+                    this.print(`実行エラー: ${error.message}`);
+                }
+            }
+            
+            // print文を処理する関数
+            processPrint(line) {
+                // print("Hello, World!") から "Hello, World!" の部分を取り出す
+                const match = line.match(/^print\("(.*)"\)$/);
+                
+                if (match) {
+                    const message = match[1];
+                    this.print(message);
+                } else {
+                    this.print('エラー: print文の書式が正しくありません');
+                }
+            }
+        }
+        
+        // インタープリターのインスタンスを作成
+        const interpreter = new BrlangInterpreter();
+        
+        // ページが読み込まれたときの処理
+        document.addEventListener('DOMContentLoaded', function() {
+            const runButton = document.getElementById('runButton');
+            const codeInput = document.getElementById('codeInput');
+            
+            // 実行ボタンがクリックされたときの処理
+            runButton.addEventListener('click', function() {
+                const code = codeInput.value;
+                interpreter.execute(code);
+            });
+            
+            // Ctrl+Enter で実行できるようにする
+            codeInput.addEventListener('keydown', function(event) {
+                if (event.ctrlKey && event.key === 'Enter') {
+                    const code = codeInput.value;
+                    interpreter.execute(code);
+                }
+            });
+            
+            // 初期表示メッセージ
+            interpreter.print('brlang 実行環境へようこそ！');
+            interpreter.print('上のテキストエリアにコードを入力して実行ボタンを押してください。');
+            interpreter.print('');
+        });
+    </script>
+</body>
+</html>
